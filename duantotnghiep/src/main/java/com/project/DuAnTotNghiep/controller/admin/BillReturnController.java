@@ -1,0 +1,93 @@
+package com.project.DuAnTotNghiep.controller.admin;
+
+import com.project.DuAnTotNghiep.dto.BillReturn.*;
+import com.project.DuAnTotNghiep.repository.BillDetailRepository;
+import com.project.DuAnTotNghiep.repository.BillRepository;
+import com.project.DuAnTotNghiep.service.BillReturnService;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@Controller
+public class BillReturnController {
+    private final BillReturnService billReturnService;
+    private final BillDetailRepository billDetailRepository;
+
+    public BillReturnController(BillReturnService billReturnService, BillRepository billRepository, BillDetailRepository billDetailRepository) {
+        this.billReturnService = billReturnService;
+        this.billDetailRepository = billDetailRepository;
+    }
+
+    @GetMapping("/admin/bill-return")
+    public String viewBillReturnPage(SearchBillReturnDto searchBillReturnDto, Model model) {
+        List<BillReturnDto> billReturnList = billReturnService.getAllBillReturns(searchBillReturnDto);
+        model.addAttribute("returnList", billReturnList);
+        return "admin/bill-return";
+    }
+
+    @GetMapping("/admin/bill-return-create")
+    public String viewBillReturnCreatePage(Model model) {
+
+        return "admin/bill-return-create";
+    }
+
+    @GetMapping("/admin/bill-return-detail/{id}")
+    public String viewBillReturnDetailPage(Model model, @PathVariable Long id) {
+       BillReturnDetailDto billReturnDetailDto = billReturnService.getBillReturnDetailById(id);
+
+       Double total = Double.valueOf(0);
+
+        for (RefundProductDto refundProductDto:
+                billReturnDetailDto.getRefundProductDtos()) {
+            total += refundProductDto.getMomentPriceRefund() * refundProductDto.getQuantityRefund();
+        }
+
+        Double totalReturn = Double.valueOf(0);
+
+        for (ReturnProductDto returnProductDto:
+                billReturnDetailDto.getReturnProductDtos()) {
+            totalReturn += returnProductDto.getMomentPriceExchange() * returnProductDto.getQuantityReturn();
+        }
+
+       model.addAttribute("total", total);
+        model.addAttribute("totalReturn", totalReturn);
+       model.addAttribute("billReturnDetail", billReturnDetailDto);
+
+        return "admin/bill-return-detail";
+    }
+
+
+    @GetMapping("/admin/bill-return-detail-generate/{id}")
+    public String generateHtmlPrint(Model model, @PathVariable Long id) {
+        BillReturnDetailDto billReturnDetailDto = billReturnService.getBillReturnDetailById(id);
+
+        Double total = Double.valueOf(0);
+
+        for (RefundProductDto refundProductDto:
+                billReturnDetailDto.getRefundProductDtos()) {
+            total += refundProductDto.getMomentPriceRefund() * refundProductDto.getQuantityRefund();
+        }
+
+        Double totalReturn = Double.valueOf(0);
+
+        for (ReturnProductDto returnProductDto:
+                billReturnDetailDto.getReturnProductDtos()) {
+            totalReturn += returnProductDto.getMomentPriceExchange() * returnProductDto.getQuantityReturn();
+        }
+
+        model.addAttribute("total", total);
+        model.addAttribute("totalReturn", totalReturn);
+        model.addAttribute("billReturnDetail", billReturnDetailDto);
+
+        return "admin/invoice-return-print";
+    }
+
+
+    @ResponseBody
+    @PostMapping("/api/bill-return")
+    public BillReturnDto createBillReturn(@RequestBody BillReturnCreateDto billReturnCreateDto) {
+        return billReturnService.createBillReturn(billReturnCreateDto);
+    }
+}
